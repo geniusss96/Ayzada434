@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LRU Cache & Recipe Book Dashboard</title>
+    <style>
+        :root {
+            --bg-main: #f1f5f9;
+            --bg-card: #ffffff;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --recipe-color: #059669;
+            --recipe-hover: #047857;
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --border: #cbd5e1;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            padding: 30px 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .header-title {
+            text-align: center;
+            max-width: 800px;
+            margin-bottom: 10px;
+        }
+
+        .header-title h1 {
+            color: var(--primary);
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            background: var(--bg-card);
+            border-radius: 14px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            padding: 25px;
+            border: 1px solid #e2e8f0;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+        }
+
+        @media (min-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-secondary { background: #e2e8f0; color: var(--text-main); }
+        .btn-secondary:hover { background: #cbd5e1; }
+        .btn-recipe { background: var(--recipe-color); color: white; width: 100%; }
+        .btn-recipe:hover { background: var(--recipe-hover); }
+
+        /* LRU Стили */
+        .log-box {
+            background: #0f172a;
+            color: #38bdf8;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            max-height: 120px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
+        .visual-container {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .dll-track {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .dll-node {
+            background: white;
+            border: 2px solid var(--primary);
+            border-radius: 6px;
+            padding: 8px 12px;
+            text-align: center;
+            min-width: 70px;
+            font-size: 0.9rem;
+        }
+
+        .dll-node.dummy {
+            border-color: #64748b;
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .hash-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .hash-table th, .hash-table td {
+            border: 1px solid #e2e8f0;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .hash-table th { background: #f1f5f9; }
+
+        /* Recipe Стили */
+        .recipe-box, .shopping-box {
+            max-height: 300px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .recipe-card {
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            border-radius: 8px;
+            background: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .shop-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .shop-item.checked {
+            text-decoration: line-through;
+            opacity: 0.5;
+            background: #f1f5f9;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-title">
+        <h1>Интерактивная JS-Платформа</h1>
+        <p style="color: var(--text-muted)">Вся логика работает автономно прямо в вашем браузере (Алгоритмы структуры данных + Парсинг)</p>
+    </div>
+
+    <!-- ТЕМА 1: LRU CACHE -->
+    <div class="container">
+        <h2>🔄 1. Симуляция LRU Кэша (Hash Map + Двусвязный список)</h2>
+        <div class="grid-2">
+            <div>
+                <div class="form-group">
+                    <label>Размер кэша (Capacity):</label>
+                    <select id="cacheCap" onchange="initCache()">
+                        <option value="3" selected>3 элемента</option>
+                        <option value="4">4 элемента</option>
+                        <option value="5">5 элементов</option>
+                    </select>
+                </div>
+                <div class="grid-2" style="gap:10px; grid-template-columns: 1fr 1fr; margin-bottom:10px;">
+                    <div>
+                        <label>Ключ (Key):</label>
+                        <input type="text" id="cKey" placeholder="Например: A">
+                    </div>
+                    <div>
+                        <label>Значение (Value):</label>
+                        <input type="text" id="cValue" placeholder="Например: 100">
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-primary" style="flex:1" onclick="doPut()">Put (Записать/Обновить)</button>
+                    <button class="btn btn-secondary" style="flex:1" onclick="doGet()">Get (Прочитать ключ)</button>
+                </div>
+                <p style="margin-top:15px; font-size:0.85rem; color:var(--text-muted);">
+                    * При операции <strong>Get</strong> элемент становится «свежим» и уходит в начало списка. При превышении лимита операции <strong>Put</strong> вытесняют самый старый элемент (возле TAIL).
+                </p>
+            </div>
+            <div>
+                <label>Лог выполнения операций («Бэкенд» события):</label>
+                <div class="log-box" id="lruLog">Система кэширования запущена...</div>
+
+                <div class="visual-container">
+                    <label style="margin-bottom:8px; display:block;">Порядок в списке (Слева MRU -> Справа LRU):</label>
+                    <div class="dll-track" id="dllView"></div>
+
+                    <label style="margin-bottom:8px; display:block; margin-top:15px;">Внутренняя Хэш-карта (Map):</label>
+                    <table class="hash-table">
+                        <thead>
+                            <tr><th>Ключ (Key)</th><th>Значение (Value)</th><th>Указатель в DLL</th></tr>
+                        </thead>
+                        <tbody id="hashView"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ТЕМА 2: RECIPE BOOK -->
+    <div class="container">
+        <h2>📖 2. Книга Рецептов и Автоматический калькулятор покупок</h2>
+        <div class="grid-2">
+            <div>
+                <div class="form-group">
+                    <label>Название блюда:</label>
+                    <input type="text" id="recTitle" placeholder="Например: Пюре с сосисками">
+                </div>
+                <div class="form-group">
+                    <label>Ингредиенты (Строго в формате: Продукт - Количество Ед):</label>
+                    <textarea id="recIngs" rows="5" placeholder="Картофель - 1 кг&#10;Молоко - 200 мл&#10;Сосиски - 6 шт&#10;Сливочное масло - 50 г"></textarea>
+                </div>
+                <button class="btn btn-recipe" onclick="addNewRecipe()">Сохранить в книгу</button>
+            </div>
+            <div>
+                <h3>Сохраненные рецепты (Отметьте галочкой нужные)</h3>
+                <div class="recipe-box" id="recipesList" style="margin-top:15px;"></div>
+            </div>
+        </div>
+
+        <div style="margin-top:30px; border-top: 2px dashed #cbd5e1; padding-top:20px;">
+            <h3 style="color: var(--recipe-color); margin-bottom:10px;">🛒 Сводный список покупок (Суммирование дубликатов)</h3>
+            <div class="shopping-box" id="shopListView"></div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // РЕАЛИЗАЦИЯ СТРУКТУРЫ ДАННЫХ LRU CACHE
+        // ==========================================
+        class Node {
+            constructor(key, value) {
+                this.key = key;
+                this.value = value;
+                this.prev = null;
+                this.next = null;
+            }
+        }
+
+        class LRUCache {
+            constructor(capacity) {
+                this.capacity = capacity;
+                this.map = new Map();
+                this.head = new Node('HEAD', 'DUMMY');
+                this.tail = new Node('TAIL', 'DUMMY');
+                this.head.next = this.tail;
+                this.tail.prev = this.head;
+            }
+
+            _remove(node) {
+                node.prev.next = node.next;
+                node.next.prev = node.prev;
+            }
+
+            _addToHead(node) {
+                node.next = this.head.next;
+                node.next.prev = node;
+                this.head.next = node;
+                node.prev = this.head;
+            }
+
+            get(key) {
+                if (!this.map.has(key)) return null;
+                const node = this.map.get(key);
+                this._remove(node);
+                this._addToHead(node);
+                return node.value;
+            }
+
+            put(key, value) {
+                if (this.map.has(key)) {
+                    const node = this.map.get(key);
+                    node.value = value;
+                    this._remove(node);
+                    this._addToHead(node);
+                    return { action: 'update' };
+                }
+                
+                const newNode = new Node(key, value);
+                this.map.set(key, newNode);
+                this._addToHead(newNode);
+
+                if (this.map.size > this.capacity) {
+                    const lruNode = this.tail.prev;
+                    this._remove(lruNode);
+                    this.map.delete(lruNode.key);
+                    return { action: 'evict', evictedKey: lruNode.key };
+                }
+                return { action: 'insert' };
+            }
+        }
+
+        let cacheInstance;
+
+        function initCache() {
+            const cap = parseInt(document.getElementById('cacheCap').value);
+            cacheInstance = new LRUCache(cap);
+            addLog(`Инициализирован пустой кэш с емкостью ${cap}`);
+            renderLRU();
+        }
+
+        function addLog(msg) {
+            const logBox = document.getElementById('lruLog');
+            logBox.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}<br>` + logBox.innerHTML;
+        }
+
+        function doPut() {
+            const key = document.getElementById('cKey').value.trim();
+            const val = document.getElementById('cValue').value.trim();
+            if (!key || !val) { alert('Введите и ключ, и значение!'); return; }
+
+            const res = cacheInstance.put(key, val);
+            if (res.action === 'insert') addLog(`Добавлен элемент [${key} : ${val}]`);
+            if (res.action === 'update') addLog(`Обновлен элемент [${key} -> ${val}]. Перемещен в начало (MRU).`);
+            if (res.action === 'evict') addLog(`Добавлен [${key}]. Превышена емкость! Удален старый элемент (LRU): "${res.evictedKey}"`);
+            
+            document.getElementById('cKey').value = '';
+            document.getElementById('cValue').value = '';
+            renderLRU();
+        }
+
+        function doGet() {
+            const key = document.getElementById('cKey').value.trim();
+            if (!key) { alert('Введите Ключ для поиска!'); return; }
+
+            const val = cacheInstance.get(key);
+            if (val !== null) {
+                addLog(`ХИТ (Hit)! Найдено значение для "${key}" = "${val}". Элемент перемещен к HEAD.`);
+                document.getElementById('cValue').value = val;
+            } else {
+                addLog(`ПРОМАХ (Miss)! Ключ "${key}" не найден в кэше.`);
+            }
+            renderLRU();
+        }
+
+        function renderLRU() {
+            const dllView = document.getElementById('dllView');
+            dllView.innerHTML = '<div class="dll-node dummy">HEAD</div>';
+            let curr = cacheInstance.head.next;
+            while(curr !== cacheInstance.tail) {
+                dllView.innerHTML += '<span>⇄</span>';
+                dllView.innerHTML += `<div class="dll-node"><b>${curr.key}</b><br><small>${curr.value}</small></div>`;
+                curr = curr.next;
+            }
+            dllView.innerHTML += '<span>⇄</span><div class="dll-node dummy">TAIL</div>';
+
+            const hashView = document.getElementById('hashView');
+            hashView.innerHTML = '';
+            if (cacheInstance.map.size === 0) {
+                hashView.innerHTML = '<tr><td colspan="3" style="text-align:center; color:grey">В кэше пока нет данных</td></tr>';
+                return;
+            }
+            cacheInstance.map.forEach((node, k) => {
+                hashView.innerHTML += `<tr><td><b>${k}</b></td><td>${node.value}</td><td>Node(${k})_Ref</td></tr>`;
+            });
+        }
+
+        // ==========================================
+        // ЛОГИКА КНИГИ РЕЦЕПТОВ & АВТОРАСЧЕТА ПОКУПОК
+        // ==========================================
+        let initialRecipes = [
+            { id: 1, title: "Утренний Кофе и Бутерброд", text: "Кофе - 10 г\nМолоко - 50 мл\nХлеб - 2 кусок\nСыр - 40 г\nМасло - 10 г", selected: true },
+            { id: 2, title: "Паста с сыром", text: "Макароны - 250 г\nСыр - 100 г\nМасло - 20 г", selected: false }
+        ];
+
+        let myRecipes = JSON.parse(localStorage.getItem('my_dashboard_recipes')) || initialRecipes;
+
+        function saveRecipes() {
+            localStorage.setItem('my_dashboard_recipes', JSON.stringify(myRecipes));
+        }
+
+        function addNewRecipe() {
+            const tInput = document.getElementById('recTitle');
+            const iInput = document.getElementById('recIngs');
+            const title = tInput.value.trim();
+            const text = iInput.value.trim();
+
+            if (!title || !text) { alert('Заполните название и ингредиенты рецепта!'); return; }
+
+            myRecipes.push({ id: Date.now(), title, text, selected: false });
+            saveRecipes();
+            tInput.value = ''; iInput.value = '';
+            renderRecipes();
+        }
+
+        function deleteRecipe(id) {
+            myRecipes = myRecipes.filter(r => r.id !== id);
+            saveRecipes();
+            renderRecipes();
+        }
+
+        function toggleRecipe(id) {
+            const recipe = myRecipes.find(r => r.id === id);
+            if (recipe) {
+                recipe.selected = !recipe.selected;
+                saveRecipes();
+                calculateShopping();
+            }
+        }
+
+        function renderRecipes() {
+            const container = document.getElementById('recipesList');
+            container.innerHTML = '';
+            if(myRecipes.length === 0) {
+                container.innerHTML = '<p style="color:grey; text-align:center">Книга рецептов пуста...</p>';
+                calculateShopping();
+                return;
+            }
+
+            myRecipes.forEach(r => {
+                const checked = r.selected ? 'checked' : '';
+                container.innerHTML += `
+                    <div class="recipe-card">
+                        <div>
+                            <input type="checkbox" ${checked} onchange="toggleRecipe(${r.id})" id="chk_${r.id}">
+                            <label for="chk_${r.id}" style="display:inline; margin-left:8px; cursor:pointer; color:var(--text-main); font-size:1rem">${r.title}</label>
+                        </div>
+                        <button class="btn" style="background:none; color:var(--danger); padding:5px;" onclick="deleteRecipe(${r.id})">🗑️</button>
+                    </div>
+                `;
+            });
+            calculateShopping();
+        }
+
+        function parseLine(line) {
+            if (!line.includes('-')) return null;
+            const parts = line.split('-');
+            const name = parts[0].trim();
+            const qtyStr = parts[1] ? parts[1].trim() : '';
+            
+            if(!name) return null;
+
+            const numMatch = qtyStr.match(/^([0-9.,]+)\s*(.*)$/);
+            if (numMatch) {
+                const num = parseFloat(numMatch[1].replace(',', '.'));
+                const unit = numMatch[2].trim();
+                return { name, num: isNaN(num) ? 0 : num, unit: unit || 'ед.' };
+            }
+            return { name, num: 0, unit: qtyStr || 'по вкусу' };
+        }
+
+        function calculateShopping() {
+            const container = document.getElementById('shopListView');
+            container.innerHTML = '';
+
+            const selected = myRecipes.filter(r => r.selected);
+            if(selected.length === 0) {
+                container.innerHTML = '<p style="color:grey; text-align:center; padding:15px;">Выберите рецепты выше, чтобы рассчитать список покупок.</p>';
+                return;
+            }
+
+            const summary = {};
+
+            selected.forEach(r => {
+                const lines = r.text.split('\n');
+                lines.forEach(line => {
+                    const parsed = parseLine(line);
+                    if (!parsed) return;
+
+                    const normalName = parsed.name.charAt(0).toUpperCase() + parsed.name.slice(1).toLowerCase();
+                    if (!summary[normalName]) summary[normalName] = {};
+                    
+                    if (summary[normalName][parsed.unit]) {
+                        summary[normalName][parsed.unit] += parsed.num;
+                    } else {
+                        summary[normalName][parsed.unit] = parsed.num;
+                    }
+                });
+            });
+
+            let totalItemsCount = 0;
+            for (const [prod, units] of Object.entries(summary)) {
+                for (const [unit, totalNum] of Object.entries(units)) {
+                    totalItemsCount++;
+                    const row = document.createElement('div');
+                    row.className = 'shop-item';
+                    const displayQty = totalNum > 0 ? `${totalNum} ${unit}` : unit;
+                    row.innerHTML = `<span>📦 ${prod}</span> <b>${displayQty}</b>`;
+                    row.onclick = function() { this.classList.toggle('checked'); };
+                    container.appendChild(row);
+                }
+            }
+
+            if(totalItemsCount === 0) {
+                container.innerHTML = '<p style="color:var(--danger); text-align:center; padding:15px;">В выбранных рецептах нет ингредиентов в формате "Название - Количество"!</p>';
+            }
+        }
+
+        window.onload = function() {
+            initCache();
+            renderRecipes();
+        }
+    </script>
+</body>
+</html>
